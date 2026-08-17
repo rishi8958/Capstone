@@ -1,0 +1,11 @@
+run: docker compose up --build
+seed: docker compose exec app node src/db/seed.js
+test: npm test
+base_url: http://localhost:3000
+endpoints:
+  - POST /campaigns
+  - GET /campaigns
+  - GET /campaigns/:id
+  - POST /campaigns/:id/publish
+  - POST /webhook/social-delivery
+  - GET /health

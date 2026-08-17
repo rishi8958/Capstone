@@ -1,0 +1,51 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  fake-platform:
+    build: ./starters/fake-platform
+    ports:
+      - "4000:4000"
+    environment:
+      - WEBHOOK_CALLBACK_URL=http://app:3000/webhook/social-delivery
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - FAKE_PLATFORM_URL=http://fake-platform:4000
+      - REDIS_URL=redis://redis:6379
+      - DB_PATH=/data/social.db
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    volumes:
+      - app-data:/data
+      - ./generated:/app/generated
+    depends_on:
+      - redis
+      - fake-platform
+    command: sh -c "node src/db/migrate.js && node src/index.js"
+
+  worker:
+    build: .
+    environment:
+      - FAKE_PLATFORM_URL=http://fake-platform:4000
+      - REDIS_URL=redis://redis:6379
+      - DB_PATH=/data/social.db
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    volumes:
+      - app-data:/data
+      - ./generated:/app/generated
+    depends_on:
+      - redis
+      - fake-platform
+    command: node src/worker/index.js
+
+volumes:
+  app-data:
